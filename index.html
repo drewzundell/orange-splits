@@ -77,6 +77,7 @@ textarea{min-height:96px;resize:vertical}
 .bib small{display:block;font:600 .62rem var(--body);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 .who{min-width:0}
 .who b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who .tgt{display:block;margin-top:2px;color:var(--fg);white-space:normal}
 .who span{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .need{text-align:right;font-variant-numeric:tabular-nums}
 .need .n{font-family:var(--display);font-weight:800;font-size:1.6rem;line-height:1}
@@ -170,15 +171,13 @@ details ol{padding-left:20px;margin:8px 0 0;color:var(--muted);font-size:.9rem}
 </main>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-</body>
-</html>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 /* ===== SETUP: paste your Firebase web config here (Firebase console > Project settings > Your apps) ===== */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBJ41ACCqTiwsMrbCaULkwwdIPnNqJfhRw",
   authDomain: "scobbbucks.firebaseapp.com",
-  databaseURL: "https://scobbbucks-default-rtdb.firebaseio.com/",
+  databaseURL: "https://scobbbucks-default-rtdb.firebaseio.com",
   projectId: "scobbbucks",
   appId: "1:324314172165:web:1b16c4da078eeab0a9456c"
 };
@@ -225,6 +224,7 @@ const PTT_TEAM = /^(.+?)\s*\[[A-Za-z0-9]{1,4}\]\s*(?:-\s*\d+)?\s*$/;
 const PTT_HEAD = /^(\d{1,3}|DNF|DNS|DQ)\s+(\S.*)$/;
 function parsePTT(lines) {
   const out = [];
+  let lastPlace = 0;
   for (let i = 1; i < lines.length; i++) {
     const tm = lines[i].match(PTT_TEAM);
     if (!tm) continue;
@@ -232,8 +232,11 @@ function parsePTT(lines) {
     const h = lines[i - 1].match(PTT_HEAD);
     if (h) { place = h[1]; name = h[2]; }
     else if (i >= 2 && /^(\d{1,3}|DNF|DNS|DQ)$/.test(lines[i - 2])) { place = lines[i - 2]; name = lines[i - 1]; }
-    if (!place || !/^\d+$/.test(place)) continue;
+    if (!place) continue;
     const t = lines[i + 1] && lines[i + 1].match(/^(\d{1,2}:\d{2}(?:\.\d+)?)/);
+    // a DNF row that still has a split time was running at this point, so it holds a place
+    if (!/^\d+$/.test(place)) { if (!t) continue; place = String(lastPlace + 1); }
+    lastPlace = +place;
     out.push({ place: +place, name: name.trim(), team: tm[1].replace(/\s+/g, ' ').trim(), time: t ? t[1] : '' });
   }
   return out;
@@ -540,14 +543,16 @@ function render() {
   const mine = recs.map((r, i) => ({ r, i })).filter(x => x.r.team === team);
   $('runners').innerHTML = mine.map((x, k) => {
     const res = soloNeed(recs, scoring, team, x.i, goal);
-    let cls, n, t;
-    if (res.hold) { cls = 'hold'; n = res.safe ? 'Safe' : '−' + res.cushion; t = res.safe ? 'any place holds' : 'can lose and hold'; }
-    else if (res.need !== null) { cls = 'up'; n = '+' + res.need; t = `spots to ${ord(x.r.place - res.need)}`; }
+    let cls, n, t, tgt = '';
+    if (res.hold) { cls = 'hold'; n = res.safe ? 'Safe' : '−' + res.cushion; t = res.safe ? 'any place holds' : 'can lose and hold';
+      if (!res.safe) { const o = recs[x.i + res.cushion + 1]; if (o) tgt = `<span class="tgt">stay in front of <b>${esc(o.name)}</b>, ${esc(o.team)}</span>`; } }
+    else if (res.need !== null) { cls = 'up'; n = '+' + res.need; t = `spots to ${ord(x.r.place - res.need)}`;
+      const o = recs[x.i - res.need]; if (o) tgt = `<span class="tgt">in front of <b>${esc(o.name)}</b>, ${esc(o.team)}</span>`; }
     else { cls = 'no'; n = 'Not alone'; t = `winning gets ${ord(res.best)}`; }
     const pts = me.places[k];
     return `<div class="runner${k >= 5 ? ' bench' : ''}">
       <div class="bib">${x.r.place}<small>${k < 5 ? 'Scorer ' + (k + 1) : 'No. ' + (k + 1)}</small></div>
-      <div class="who"><b>${esc(x.r.name)}</b><span>${x.r.time ? esc(x.r.time) + ' · ' : ''}${pts ? pts + ' team pts' : ''}</span></div>
+      <div class="who"><b>${esc(x.r.name)}</b><span>${x.r.time ? esc(x.r.time) + ' · ' : ''}${pts ? pts + ' team pts' : ''}</span>${tgt}</div>
       <div class="need ${cls}"><div class="n">${n}</div><div class="t">${t}</div></div>
     </div>`;
   }).join('');
