@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000e54">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Orange Splits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: navy race-bib header, then one narrow column: load split, team status, goal picker, runner cards, standings */
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --fg:#0d1530; --muted:#5a6480; --line:#d8deea;
+  --orange:#f76900; --orange-ink:#b84d00; --navy:#000e54; --navy-fg:#ffffff;
+  --good:#0f7a43; --good-bg:#e2f4ea; --warn:#a33a00; --warn-bg:#ffe9d9; --bad:#9b1c2e; --bad-bg:#fbe3e6;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#080c1c; --surface:#121a33; --fg:#e8ecf6; --muted:#97a2c2; --line:#24304f;
+  --orange:#ff7a1a; --orange-ink:#ff9a4d; --navy:#000a3d; --navy-fg:#ffffff;
+  --good:#5fd394; --good-bg:#0f2e20; --warn:#ffab70; --warn-bg:#35200f; --bad:#ff8a9a; --bad-bg:#3a1520; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#080c1c; --surface:#121a33; --fg:#e8ecf6; --muted:#97a2c2; --line:#24304f;
+  --orange:#ff7a1a; --orange-ink:#ff9a4d; --navy:#000a3d; --navy-fg:#ffffff;
+  --good:#5fd394; --good-bg:#0f2e20; --warn:#ffab70; --warn-bg:#35200f; --bad:#ff8a9a; --bad-bg:#3a1520; color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+.hero{background:var(--navy);color:var(--navy-fg);margin-top:calc(-1 * env(safe-area-inset-top,0px));padding-top:calc(env(safe-area-inset-top,0px) + 18px);padding-bottom:18px}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hero h1{font-family:var(--display);font-weight:800;font-size:2.4rem;line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
+.hero h1 span{color:var(--orange)}
+.hero p{margin:6px 0 0;opacity:.85;font-size:.9rem}
+.hero a{color:#ffd2b0}
+.hero-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:14px}
+.live{display:inline-flex;align-items:center;gap:8px;font-size:.82rem;font-weight:600;background:rgba(255,255,255,.1);border-radius:999px;padding:6px 12px;max-width:100%}
+.live::before{content:"";width:9px;height:9px;border-radius:50%;background:#9aa4c4;flex:none}
+.live.on::before{background:#3ddc84}
+.live.warn::before{background:#ffb04d}
+.pinrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;font-size:.85rem}
+.pinrow input{width:110px;font:16px var(--body);padding:8px 10px;border-radius:8px;border:0}
+.pinrow .btn{min-height:38px;padding:8px 14px}
+.hero .chip{background:transparent;color:#fff;border-color:rgba(255,255,255,.45)}
+.hero .chip[aria-pressed="true"]{background:var(--orange);border-color:var(--orange)}
+main.wrap{display:flex;flex-direction:column;gap:14px;padding-block:16px 40px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin:0 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:600 .9rem var(--body);border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:7px 12px;cursor:pointer;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--orange);border-color:var(--orange);color:#fff}
+.chip:focus-visible,button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+textarea,input[type=text]{width:100%;font:15px var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}
+textarea{min-height:96px;resize:vertical}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{font:700 1rem var(--display);letter-spacing:.06em;text-transform:uppercase;background:var(--orange);color:#fff;border:0;border-radius:10px;padding:11px 18px;cursor:pointer;min-height:44px}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.status{font-size:.85rem;color:var(--muted);min-height:1.2em}
+.status.err{color:var(--bad)}
+.banner{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:8px 12px;font-size:.85rem;font-weight:500}
+.now{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:center}
+.big{font-family:var(--display);font-weight:800;font-size:4.2rem;line-height:.9;color:var(--orange);font-variant-numeric:tabular-nums}
+.big sup{font-size:1.6rem;vertical-align:top;margin-left:2px}
+.nowtext{min-width:0}
+.nowtext strong{display:block;font-family:var(--display);font-size:1.35rem;text-transform:uppercase;letter-spacing:.02em}
+.nowtext span{color:var(--muted);font-size:.88rem}
+.pill{display:inline-block;font-weight:700;font-size:.8rem;border-radius:999px;padding:3px 10px;margin-top:6px}
+.pill.ok{background:var(--good-bg);color:var(--good)} .pill.no{background:var(--bad-bg);color:var(--bad)}
+.goals .chip{min-width:44px;text-align:center;font-family:var(--display);font-size:1.05rem}
+.runner{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.runner:first-of-type{border-top:0}
+.bib{font-family:var(--display);font-weight:800;font-size:1.5rem;text-align:center;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:4px 0;font-variant-numeric:tabular-nums;line-height:1.1}
+.bib small{display:block;font:600 .62rem var(--body);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.who{min-width:0}
+.who b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who span{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.need{text-align:right;font-variant-numeric:tabular-nums}
+.need .n{font-family:var(--display);font-weight:800;font-size:1.6rem;line-height:1}
+.need .t{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.need.up .n{color:var(--warn)} .need.hold .n{color:var(--good)} .need.no .n{color:var(--bad);font-size:1.05rem}
+.runner.bench{opacity:.72}
+.even{margin-top:10px;background:var(--bg);border-radius:10px;padding:10px 12px;font-size:.92rem}
+.even b{font-family:var(--display);font-size:1.25rem}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.88rem}
+th,td{padding:6px 4px;text-align:left;border-bottom:1px solid var(--line)}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right}
+tr.su td{background:var(--warn-bg);font-weight:700}
+tr.cut td{border-bottom:2px solid var(--orange)}
+.scroll{overflow-x:auto}
+details summary{cursor:pointer;font-weight:600}
+details ol{padding-left:20px;margin:8px 0 0;color:var(--muted);font-size:.9rem}
+.hist .chip{font-size:.8rem}
+@media (prefers-reduced-motion:no-preference){.chip,.btn{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+
+<header class="hero"><div class="wrap">
+  <h1>Orange <span>Splits</span></h1>
+  <p>NCAA XC Championships · Men's 10K · <a href="https://live.pttiming.com/xc-ptt.html?mid=9156" target="_blank" rel="noopener">PTTiming live results</a></p>
+  <div class="hero-bar">
+    <span class="live" id="livePill" role="status">Connecting</span>
+    <div class="chips" id="modeChips" role="group" aria-label="This device"></div>
+  </div>
+  <form class="pinrow" id="pinForm" hidden>
+    <label for="pinInput">Sender PIN</label>
+    <input id="pinInput" type="password" inputmode="numeric" autocomplete="off">
+    <button class="btn" type="submit">Unlock</button>
+    <span id="pinMsg"></span>
+  </form>
+</div></header>
+
+<main class="wrap">
+  <section class="card" id="loadCard" aria-labelledby="loadh" hidden>
+    <p class="label" id="loadh">Send a split to every phone watching</p>
+    <div class="chips" id="splitChips" role="group" aria-label="Split"></div>
+    <div style="height:10px"></div>
+    <textarea id="paste" placeholder="Paste the split here. On PTTiming: pick the men's 10K and a split tab, select the results, copy, then paste."></textarea>
+    <div style="height:8px"></div>
+    <div class="row">
+      <button class="btn" id="readBtn" type="button">Read split</button>
+      <button class="btn ghost" id="clearBtn" type="button">Clear box</button>
+      <button class="btn ghost" id="resetBtn" type="button">Reset live data</button>
+    </div>
+    <div class="chips" id="segChips" style="margin-top:8px" hidden></div>
+    <p class="status" id="status" role="status"></p>
+    <details>
+      <summary>Team and help</summary>
+      <div style="height:8px"></div>
+      <label class="label" for="teamName">Team to track</label>
+      <input type="text" id="teamName" value="Syracuse" autocomplete="off">
+      <ol>
+        <li>Open the PTTiming link above in your phone browser, men's race, the split you want.</li>
+        <li>Long-press a result, drag to select the whole list (or Select All), Copy.</li>
+        <li>Paste here. It reads automatically and sends the split to everyone who has the site open.</li>
+        <li>Paste the full field for that split, not just the top 50, so every team's five count.</li>
+      </ol>
+    </details>
+  </section>
+
+  <div class="banner" id="exampleBanner" hidden>Example field with made-up times. Paste a real split to replace it.</div>
+
+  <section class="card now" id="nowCard" aria-live="polite"></section>
+
+  <section class="card" aria-labelledby="goalh">
+    <p class="label" id="goalh">Team goal</p>
+    <div class="chips goals" id="goalChips" role="group" aria-label="Team goal"></div>
+  </section>
+
+  <section class="card" aria-labelledby="runh">
+    <p class="label" id="runh">Spots each runner needs, alone</p>
+    <div id="runners"></div>
+    <div class="even" id="even"></div>
+  </section>
+
+  <section class="card">
+    <p class="label">Team standings at this split</p>
+    <div class="scroll"><table id="standings"></table></div>
+  </section>
+
+  <section class="card hist">
+    <p class="label">Splits</p>
+    <div class="chips" id="history"></div>
+  </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+</body>
+</html>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ===== SETUP: paste your Firebase web config here (Firebase console > Project settings > Your apps) ===== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBJ41ACCqTiwsMrbCaULkwwdIPnNqJfhRw",
+  authDomain: "scobbbucks.firebaseapp.com",
+  databaseURL: "https://scobbbucks-default-rtdb.firebaseio.com/",
+  projectId: "scobbbucks",
+  appId: "1:324314172165:web:1b16c4da078eeab0a9456c"
+};
+/* Where this race's splits live in the database. Change it for a different race. */
+const DB_PATH = "orangesplits/ncaa-2026-men";
+/* PIN the person sending splits types once on their device. Change it before sharing the link. */
+const SEND_PIN = "2015";
+/* ===== end setup ===== */
+
+// ---- parsing ----
+const NUMISH = /^[\d:.,+\-\s]+$/;
+const YEARISH = /^(fr|so|jr|sr|gr|5y|rs|r-?\w{2}|\d{1,2})\.?$/i;
+const TIMEISH = /^\d{1,2}:\d{2}(\.\d+)?$/;
+const PLACEISH = /^(\d{1,3})\.?$/;
+
+function toRows(text) {
+  const lines = text.split(/\r?\n/).map(l => l.replace(/ /g, ' ').trim()).filter(Boolean);
+  const tabbed = lines.filter(l => l.includes('\t')).length;
+  if (tabbed >= 3) return lines.map(l => l.split('\t').map(c => c.trim()).filter(c => c !== ''));
+  const spaced = lines.filter(l => l.split(/\s{2,}/).length >= 4).length;
+  if (spaced >= 3) return lines.map(l => l.split(/\s{2,}/).map(c => c.trim()));
+  // one cell per line: a record starts at the next expected place number
+  const rows = [];
+  let cur = null, expect = null;
+  for (const l of lines) {
+    const m = l.match(PLACEISH);
+    const n = m ? +m[1] : null;
+    if (n !== null && (expect === null ? n >= 1 : (n === expect || n === 1))) {
+      if (cur) rows.push(cur);
+      cur = [l]; expect = n + 1; continue;
+    }
+    if (cur) cur.push(l); else rows.push([l]);
+  }
+  if (cur) rows.push(cur);
+  return rows;
+}
+
+function placeOf(row) {
+  const m = row[0] && row[0].match(PLACEISH);
+  return m ? +m[1] : null;
+}
+
+const PTT_TEAM = /^(.+?)\s*\[[A-Za-z0-9]{1,4}\]\s*(?:-\s*\d+)?\s*$/;
+const PTT_HEAD = /^(\d{1,3}|DNF|DNS|DQ)\s+(\S.*)$/;
+function parsePTT(lines) {
+  const out = [];
+  for (let i = 1; i < lines.length; i++) {
+    const tm = lines[i].match(PTT_TEAM);
+    if (!tm) continue;
+    let place = null, name = '';
+    const h = lines[i - 1].match(PTT_HEAD);
+    if (h) { place = h[1]; name = h[2]; }
+    else if (i >= 2 && /^(\d{1,3}|DNF|DNS|DQ)$/.test(lines[i - 2])) { place = lines[i - 2]; name = lines[i - 1]; }
+    if (!place || !/^\d+$/.test(place)) continue;
+    const t = lines[i + 1] && lines[i + 1].match(/^(\d{1,2}:\d{2}(?:\.\d+)?)/);
+    out.push({ place: +place, name: name.trim(), team: tm[1].replace(/\s+/g, ' ').trim(), time: t ? t[1] : '' });
+  }
+  return out;
+}
+
+function parseSplit(text) {
+  const plines = text.split(/\r?\n/).map(l => l.replace(/\u00a0/g, ' ').trim()).filter(Boolean);
+  const ptt = parsePTT(plines);
+  if (ptt.length >= 10) {
+    const segs = []; let seg = [];
+    for (const r of ptt) {
+      if (seg.length && r.place <= seg[seg.length - 1].place) { segs.push(seg); seg = []; }
+      seg.push(r);
+    }
+    if (seg.length) segs.push(seg);
+    const good = segs.filter(s => s.length >= 5);
+    if (good.length) return good;
+  }
+  const rows = toRows(text);
+  let header = null;
+  for (const r of rows) {
+    if (placeOf(r) === null && r.some(c => /^(team|school|affiliation|college)$/i.test(c))) { header = r; break; }
+  }
+  const data = rows.filter(r => placeOf(r) !== null && r.length >= 3);
+  // split into segments where the place count restarts
+  const segs = [];
+  let seg = [];
+  for (const r of data) {
+    const p = placeOf(r);
+    if (seg.length && p <= placeOf(seg[seg.length - 1])) { segs.push(seg); seg = []; }
+    seg.push(r);
+  }
+  if (seg.length) segs.push(seg);
+  return segs.filter(s => s.length >= 5).map(s => buildRecords(s, header));
+}
+
+function buildRecords(rows, header) {
+  const width = Math.max(...rows.map(r => r.length));
+  let teamCol = -1, nameCol = -1;
+  if (header) {
+    const off = width - header.length; // header may lack a leading cell
+    header.forEach((h, i) => {
+      if (/^(team|school|affiliation|college)$/i.test(h)) teamCol = i + Math.max(0, off);
+      if (/^(name|athlete|runner)$/i.test(h)) nameCol = i + Math.max(0, off);
+    });
+  }
+  const BR = /\s*\[[^\]]{1,4}\]\s*$/;
+  if (teamCol < 0) {
+    for (let c = 1; c < width; c++) {
+      const vals = rows.map(r => r[c]).filter(v => v !== undefined && v !== '');
+      if (vals.length >= rows.length * 0.6 && vals.filter(v => BR.test(v) && v.replace(BR, '').length > 1).length > vals.length * 0.6) { teamCol = c; break; }
+    }
+  }
+  const textCols = [];
+  for (let c = 1; c < width; c++) {
+    const vals = rows.map(r => r[c]).filter(v => v !== undefined && v !== '');
+    if (vals.length < rows.length * 0.7) continue;
+    if (vals.filter(v => NUMISH.test(v)).length > vals.length / 2) continue;
+    if (vals.filter(v => YEARISH.test(v) || v.length <= 3).length > vals.length / 2) continue;
+    const d = new Set(vals.map(v => v.toLowerCase())).size;
+    textCols.push({ c, d, ratio: d / vals.length });
+  }
+  if (teamCol < 0 || !textCols.find(t => t.c === teamCol)) {
+    const cands = textCols.filter(t => t.d >= 2).sort((a, b) => a.ratio - b.ratio);
+    teamCol = cands.length ? cands[0].c : -1;
+  }
+  if (nameCol < 0 && teamCol > 1 && textCols.find(t => t.c === teamCol - 1)) nameCol = teamCol - 1;
+  if (nameCol < 0 || nameCol === teamCol) {
+    const cands = textCols.filter(t => t.c !== teamCol).sort((a, b) => b.d - a.d || Math.abs(a.c - teamCol) - Math.abs(b.c - teamCol));
+    nameCol = cands.length ? cands[0].c : -1;
+  }
+  return rows.map(r => ({
+    place: placeOf(r),
+    name: nameCol >= 0 ? (r[nameCol] || '') : r.slice(1).join(' '),
+    team: teamCol >= 0 ? (r[teamCol] || '').replace(BR, '').replace(/\s+/g, ' ').trim() : '',
+    time: r.find(c => TIMEISH.test(c)) || ''
+  })).filter(x => x.team);
+}
+
+// ---- scoring ----
+function scoringTeams(order) {
+  const counts = new Map();
+  for (const r of order) counts.set(r.team, (counts.get(r.team) || 0) + 1);
+  return new Set([...counts].filter(([, n]) => n >= 5).map(([t]) => t));
+}
+
+function score(order, scoring) {
+  const teams = new Map();
+  let p = 0;
+  for (const r of order) {
+    if (!scoring.has(r.team)) continue;
+    p++;
+    let t = teams.get(r.team);
+    if (!t) teams.set(r.team, t = { team: r.team, places: [] });
+    if (t.places.length < 7) t.places.push(p);
+  }
+  const list = [...teams.values()].map(t => ({
+    team: t.team,
+    places: t.places,
+    score: t.places.slice(0, 5).reduce((a, b) => a + b, 0),
+    tb: t.places[5] || Infinity
+  }));
+  list.sort((a, b) => {
+    if (a.score !== b.score) return a.score - b.score;
+    let aw = 0, bw = 0;
+    for (let k = 0; k < 5; k++) { if (a.places[k] < b.places[k]) aw++; else if (b.places[k] < a.places[k]) bw++; }
+    if (aw !== bw) return bw - aw;
+    return a.tb - b.tb;
+  });
+  return list;
+}
+
+function rankOf(order, scoring, team) {
+  const s = score(order, scoring);
+  return s.findIndex(t => t.team === team) + 1;
+}
+
+function moved(order, from, to) {
+  const o = order.slice();
+  const [x] = o.splice(from, 1);
+  o.splice(Math.max(0, Math.min(o.length, to)), 0, x);
+  return o;
+}
+
+// spots one runner needs (alone) to reach target, or cushion if already there
+function soloNeed(order, scoring, team, idx, target) {
+  const now = rankOf(order, scoring, team);
+  if (now <= target) {
+    let k = 0;
+    for (let s = 1; idx + s < order.length; s++) {
+      if (rankOf(moved(order, idx, idx + s), scoring, team) > target) return { hold: true, cushion: s - 1 };
+      k = s;
+    }
+    return { hold: true, cushion: k, safe: true };
+  }
+  for (let s = 1; s <= idx; s++) {
+    if (rankOf(moved(order, idx, idx - s), scoring, team) <= target) return { hold: false, need: s };
+  }
+  return { hold: false, need: null, best: rankOf(moved(order, idx, 0), scoring, team) };
+}
+
+// every one of the team's top five moves the same number of spots
+function evenNeed(order, scoring, team, target) {
+  const idxs = order.map((r, i) => r.team === team ? i : -1).filter(i => i >= 0).slice(0, 5);
+  const shift = (s) => {
+    let o = order.slice();
+    const ids = idxs.map(i => order[i]);
+    const list = s < 0 ? ids : ids.slice().reverse();
+    for (const r of list) {
+      const i = o.indexOf(r);
+      o = moved(o, i, i + (s < 0 ? s : s));
+    }
+    return o;
+  };
+  const now = rankOf(order, scoring, team);
+  const max = order.length;
+  if (now <= target) {
+    for (let s = 1; s < max; s++) if (rankOf(shift(s), scoring, team) > target) return { hold: true, cushion: s - 1 };
+    return { hold: true, cushion: max, safe: true };
+  }
+  for (let s = 1; s < max; s++) if (rankOf(shift(-s), scoring, team) <= target) return { hold: false, need: s };
+  return { hold: false, need: null };
+}
+
+
+
+const SPLITS = ['1K','2K','3K','4K','5K','6K','7K','8K','9K','Finish'];
+const KEY = 'orangesplits-v1';
+const $ = id => document.getElementById(id);
+let state = { split: '1K', goal: 10, team: 'Syracuse', saved: {}, view: null, follow: true, mode: null };
+let live = {}, liveStatus = 'connecting';
+let pendingSegs = null;
+
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) Object.assign(state, s); } catch (e) {}
+}
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify({ split: state.split, goal: state.goal, team: state.team, saved: state.saved, view: state.view, follow: state.follow, mode: state.mode })); } catch (e) {}
+}
+function ord(n) { const s = ['th','st','nd','rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function trackedTeam(recs) {
+  const want = state.team.trim().toLowerCase();
+  if (!want) return null;
+  const names = [...new Set(recs.map(r => r.team))];
+  return names.find(n => n.toLowerCase() === want) || names.find(n => n.toLowerCase().includes(want)) || null;
+}
+
+function exampleField() {
+  const teams = ['Oklahoma State','BYU','Northern Arizona','Stanford','Arkansas','Wisconsin','Iowa State','Notre Dame','Virginia','Colorado','Villanova','Harvard','Tennessee','Syracuse','Alabama','Washington','Furman','Princeton','Oregon','Michigan','Georgetown','Duke','NC State','Texas','Air Force','Wake Forest','Utah State','Ole Miss','Florida State','Louisville','Indiana'];
+  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const f = [];
+  teams.forEach((t, ti) => { for (let i = 0; i < 7; i++) f.push({ team: t, name: `${t.split(' ')[0]} runner ${i + 1}`, v: ti * 1.1 + rnd() * 55 }); });
+  for (let i = 0; i < 38; i++) f.push({ team: 'Individual ' + (i + 1), name: 'Individual ' + (i + 1), v: rnd() * 75 });
+  f.sort((a, b) => a.v - b.v);
+  return f.map((r, i) => ({ place: i + 1, name: r.name, team: r.team, time: `${Math.floor(5 + i / 70)}:${String((i * 7) % 60).padStart(2, '0')}` }));
+}
+
+function allSplits() {
+  const out = {};
+  for (const k in state.saved) out[k] = state.saved[k];
+  for (const k in live) if (!out[k] || live[k].at >= out[k].at) out[k] = live[k];
+  return out;
+}
+function latestLabel(a) {
+  const ks = Object.keys(a).filter(k => SPLITS.includes(k)).sort((x, y) => SPLITS.indexOf(y) - SPLITS.indexOf(x));
+  return ks[0] || null;
+}
+function current() {
+  const a = allSplits();
+  const k = (state.follow || !state.view || !a[state.view]) ? latestLabel(a) : state.view;
+  if (!k) return { recs: exampleField(), label: 'Example', example: true };
+  return { recs: a[k].recs, label: k, example: false, at: a[k].at };
+}
+const enc = recs => recs.map(r => [r.place, r.name, r.team, r.time].join('\t')).join('\n');
+const dec = str => String(str || '').split('\n').map(l => { const p = l.split('\t'); return { place: +p[0], name: p[1] || '', team: p[2] || '', time: p[3] || '' }; }).filter(r => r.team && r.place);
+function effectiveMode() {
+  if (!sendUnlocked) return 'watch';
+  return state.mode || 'watch';
+}
+function clock(ms) { return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' }); }
+function renderPill() {
+  const el = $('livePill');
+  let cls = 'live', txt;
+  if (liveStatus === 'ok') {
+    const lk = latestLabel(live);
+    cls += ' on';
+    txt = lk ? `Live · ${lk} · ${clock(live[lk].at)}` : 'Live · waiting for the first split';
+  } else if (liveStatus === 'connecting') txt = 'Connecting';
+  else { cls += ' warn'; txt = liveStatus === 'setup' ? 'Add your Firebase config to go live' : liveStatus === 'denied' ? 'Database rules are blocking reads' : liveStatus === 'slow' ? 'Reconnecting' : 'Live sync off, this device only'; }
+  el.className = cls; el.textContent = txt;
+}
+let fbRef = null, sendUnlocked = false;
+try { sendUnlocked = localStorage.getItem(KEY + '-pin') === SEND_PIN; } catch (e) {}
+async function sendLive(label, recs) {
+  if (!fbRef) return 'local';
+  try { await fbRef.child(label).set({ label, at: Date.now(), n: recs.length, csv: enc(recs) }); return 'ok'; }
+  catch (e) { return (e && /permission/i.test(e.code || e.message || '')) ? 'noperm' : 'err'; }
+}
+function startLive() {
+  if (!window.firebase || !FIREBASE_CONFIG.databaseURL || /PASTE/.test(FIREBASE_CONFIG.databaseURL)) { liveStatus = 'setup'; renderPill(); return; }
+  try {
+    const app = firebase.initializeApp(FIREBASE_CONFIG);
+    const rtdb = firebase.database(app);
+    fbRef = rtdb.ref(DB_PATH + '/splits');
+    const timer = setTimeout(() => { if (liveStatus === 'connecting') { liveStatus = 'slow'; renderPill(); } }, 10000);
+    rtdb.ref('.info/connected').on('value', s => {
+      if (s.val() === false && liveStatus === 'ok') { liveStatus = 'slow'; renderPill(); }
+    });
+    fbRef.on('value', snap => {
+      clearTimeout(timer);
+      const v = snap.val() || {}, next = {};
+      for (const k in v) {
+        if (!SPLITS.includes(k) || !v[k]) continue;
+        const recs = dec(v[k].csv);
+        if (recs.length) next[k] = { recs, at: v[k].at || 0 };
+      }
+      live = next; liveStatus = 'ok'; render();
+    }, err => { clearTimeout(timer); liveStatus = 'denied'; renderPill(); });
+  } catch (e) { liveStatus = 'off'; renderPill(); }
+}
+
+function renderChips() {
+  $('splitChips').innerHTML = SPLITS.map(s => `<button type="button" class="chip" aria-pressed="${s === state.split}" data-split="${s}">${s}</button>`).join('');
+  const goals = [10,9,8,7,6,5,4,3,2,1];
+  $('goalChips').innerHTML = goals.map(g => `<button type="button" class="chip" aria-pressed="${g === state.goal}" data-goal="${g}">${g === 10 ? 'Top 10' : ord(g)}</button>`).join('');
+  const a = allSplits();
+  const keys = Object.keys(a).sort((x, y) => SPLITS.indexOf(x) - SPLITS.indexOf(y));
+  const cur = current().label;
+  $('history').innerHTML = keys.length
+    ? (state.follow ? '' : `<button type="button" class="chip" data-follow="1">Follow live</button>`) + keys.map(k => `<button type="button" class="chip" aria-pressed="${k === cur}" data-view="${k}">${esc(k)} · ${clock(a[k].at)}</button>`).join('') + (state.follow ? '<span class="status">Following the newest split.</span>' : '')
+    : '<span class="status">Splits show up here as they come in.</span>';
+  const m = effectiveMode();
+  $('modeChips').innerHTML = `<button type="button" class="chip" aria-pressed="${m === 'watch'}" data-mode="watch">Watch</button>` + `<button type="button" class="chip" aria-pressed="${m === 'send'}" data-mode="send">Send</button>`;
+  $('loadCard').hidden = m !== 'send';
+  renderPill();
+}
+
+function render() {
+  renderChips();
+  const { recs, label, example } = current();
+  $('exampleBanner').hidden = !example;
+  const team = trackedTeam(recs);
+  const scoring = scoringTeams(recs);
+  const standings = score(recs, scoring);
+  const goal = state.goal;
+  if (!team || !scoring.has(team)) {
+    $('nowCard').innerHTML = `<div class="nowtext" style="grid-column:1/-1"><strong>${esc(state.team || 'Team')} not found as a full team</strong><span>${team ? 'Fewer than five of their runners are in this paste. Paste the full field.' : 'Check the team name under Team and help.'}</span></div>`;
+    $('runners').innerHTML = ''; $('even').innerHTML = '';
+    renderStandings(standings, null, goal); return;
+  }
+  const rank = standings.findIndex(t => t.team === team) + 1;
+  const me = standings[rank - 1];
+  const atGoal = standings[goal - 1];
+  const behind = rank > goal ? me.score - atGoal.score : null;
+  const nextUp = rank <= goal && standings[goal] ? standings[goal].score - me.score : null;
+  $('nowCard').innerHTML = `<div class="big">${rank}<sup>${ord(rank).slice(-2)}</sup></div>
+    <div class="nowtext"><strong>${esc(team)} at ${esc(label)}</strong>
+      <span>${me.score} pts · scorers ${me.places.slice(0,5).join(', ')}${me.places.length > 5 ? ' · 6-7: ' + me.places.slice(5).join(', ') : ''}</span><br>
+      ${rank <= goal ? `<span class="pill ok">Inside ${goal === 10 ? 'top 10' : ord(goal)}${nextUp !== null ? ` by ${nextUp} pts` : ''}</span>` : `<span class="pill no">${behind} pts behind ${esc(atGoal.team)} (${ord(goal)})</span>`}
+    </div>`;
+
+  const mine = recs.map((r, i) => ({ r, i })).filter(x => x.r.team === team);
+  $('runners').innerHTML = mine.map((x, k) => {
+    const res = soloNeed(recs, scoring, team, x.i, goal);
+    let cls, n, t;
+    if (res.hold) { cls = 'hold'; n = res.safe ? 'Safe' : '−' + res.cushion; t = res.safe ? 'any place holds' : 'can lose and hold'; }
+    else if (res.need !== null) { cls = 'up'; n = '+' + res.need; t = `spots to ${ord(x.r.place - res.need)}`; }
+    else { cls = 'no'; n = 'Not alone'; t = `winning gets ${ord(res.best)}`; }
+    const pts = me.places[k];
+    return `<div class="runner${k >= 5 ? ' bench' : ''}">
+      <div class="bib">${x.r.place}<small>${k < 5 ? 'Scorer ' + (k + 1) : 'No. ' + (k + 1)}</small></div>
+      <div class="who"><b>${esc(x.r.name)}</b><span>${x.r.time ? esc(x.r.time) + ' · ' : ''}${pts ? pts + ' team pts' : ''}</span></div>
+      <div class="need ${cls}"><div class="n">${n}</div><div class="t">${t}</div></div>
+    </div>`;
+  }).join('');
+
+  const ev = evenNeed(recs, scoring, team, goal);
+  const g = goal === 10 ? 'top 10' : ord(goal);
+  $('even').innerHTML = ev.hold
+    ? (ev.safe ? `Locked in for ${g} even if the top five all fade.` : `If the top five each drop <b>${ev.cushion + 1}</b> spots, ${esc(team)} falls out of ${g}. Up to ${ev.cushion} each still holds.`)
+    : (ev.need !== null ? `Or if the top five <b>each</b> gain <b>${ev.need}</b> spots, ${esc(team)} gets to ${g}.` : `Out of reach at this split even with all five moving up.`);
+  renderStandings(standings, team, goal);
+}
+
+function renderStandings(st, team, goal) {
+  const rank = team ? st.findIndex(t => t.team === team) + 1 : 0;
+  const show = st.map((t, i) => ({ t, i })).filter(x => x.i < Math.max(12, goal + 2) || x.t.team === team);
+  $('standings').innerHTML = `<thead><tr><th class="num">#</th><th>Team</th><th class="num">Pts</th><th>Top 5</th></tr></thead><tbody>` +
+    show.map(x => `<tr class="${x.t.team === team ? 'su' : ''}${x.i === goal - 1 ? ' cut' : ''}"><td class="num">${x.i + 1}</td><td>${esc(x.t.team)}</td><td class="num">${x.t.score}</td><td>${x.t.places.slice(0,5).join('-')}</td></tr>`).join('') + '</tbody>';
+}
+
+function read() {
+  const text = $('paste').value;
+  const st = $('status');
+  st.className = 'status';
+  if (!text.trim()) { st.textContent = 'Paste a split first.'; st.className = 'status err'; return; }
+  const segs = parseSplit(text);
+  if (!segs.length) { st.textContent = 'No numbered result rows found. Copy the results list itself and try again.'; st.className = 'status err'; return; }
+  if (segs.length > 1) {
+    pendingSegs = segs;
+    $('segChips').hidden = false;
+    $('segChips').innerHTML = segs.map((s, i) => `<button type="button" class="chip" data-seg="${i}">List ${i + 1}: ${s.length} runners, 1st ${esc(s[0].team)}</button>`).join('');
+    st.textContent = 'This paste has more than one results list. Tap the men\'s list.';
+    return;
+  }
+  accept(segs[0]);
+}
+
+async function accept(recs) {
+  pendingSegs = null; $('segChips').hidden = true;
+  const st = $('status');
+  const label = state.split;
+  state.saved[label] = { recs, at: Date.now() };
+  state.view = label;
+  const n = scoringTeams(recs).size;
+  const base = `Read ${recs.length} runners and ${n} full teams at ${label}.` + (n < 25 ? ' Fewer teams than expected, so the paste may be cut off.' : '');
+  const i = SPLITS.indexOf(label);
+  if (i >= 0 && i < SPLITS.length - 1) state.split = SPLITS[i + 1];
+  $('paste').value = '';
+  persist(); render();
+  st.className = 'status';
+  st.textContent = base + ' Sending to live.';
+  const r = await sendLive(label, recs);
+  st.className = 'status' + (r === 'ok' ? '' : ' err');
+  st.textContent = base + ({ ok: ' Sent live.', local: ' Live sync is off, saved on this device only.', noperm: ' The database rules blocked the write. Check the rules in Firebase.', err: ' Could not send live. Try pasting again.' }[r]);
+  render();
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.split) { state.split = b.dataset.split; persist(); renderChips(); }
+  else if (b.dataset.goal) { state.goal = +b.dataset.goal; persist(); render(); }
+  else if (b.dataset.view) { state.view = b.dataset.view; state.follow = false; persist(); render(); }
+  else if (b.dataset.follow) { state.follow = true; persist(); render(); }
+  else if (b.dataset.mode) {
+    if (b.dataset.mode === 'send' && !sendUnlocked) { $('pinForm').hidden = false; $('pinInput').focus(); return; }
+    state.mode = b.dataset.mode; persist(); render();
+  }
+  else if (b.dataset.seg) { accept(pendingSegs[+b.dataset.seg]); }
+});
+$('readBtn').addEventListener('click', read);
+$('pinForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if ($('pinInput').value === SEND_PIN) {
+    sendUnlocked = true; try { localStorage.setItem(KEY + '-pin', SEND_PIN); } catch (err) {}
+    $('pinForm').hidden = true; state.mode = 'send'; persist(); render();
+  } else { $('pinMsg').textContent = 'Wrong PIN'; }
+});
+$('resetBtn').addEventListener('click', async e => {
+  const b = e.currentTarget;
+  if (!b.dataset.confirm) { b.dataset.confirm = '1'; b.textContent = 'Tap again to erase all splits'; setTimeout(() => { delete b.dataset.confirm; b.textContent = 'Reset live data'; }, 4000); return; }
+  delete b.dataset.confirm; b.textContent = 'Reset live data';
+  state.saved = {}; state.view = null; state.follow = true; persist();
+  if (fbRef) { try { await fbRef.remove(); } catch (err) {} }
+  live = {}; $('status').textContent = 'Cleared.'; render();
+});
+$('clearBtn').addEventListener('click', () => { $('paste').value = ''; $('status').textContent = ''; });
+$('paste').addEventListener('paste', () => setTimeout(read, 50));
+$('teamName').addEventListener('change', e => { state.team = e.target.value; persist(); render(); });
+
+load();
+$('teamName').value = state.team;
+render();
+startLive();
+</script>
+</body>
+</html>
